@@ -21,7 +21,6 @@ class State(TypedDict):
     path:str
     describe: str
 
-
 #提示词模板
 prompt_template = PromptTemplate.from_template(
     """

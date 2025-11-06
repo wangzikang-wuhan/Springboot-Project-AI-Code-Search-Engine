@@ -275,7 +275,7 @@ class JavaParseHelper:
                 content=content,
                 fileType=self.getType(content).value,
                 fileName=pom_file_name,
-                describe="",
+                describe="这是项目的依赖文件pom.xml",
                 filePackage="",
             )
         else:

@@ -20,6 +20,16 @@ dense_model_name = "jinaai/jina-embeddings-v2-base-code"
 #向量模型 稀疏向量
 sparse_model_name = "prithivida/Splade_PP_en_v1"
 
+#稠密向量和稀疏向量召回的文档数
+dense_number = 5
+sparse_number = 5
+
+#最终返回的结果数量
+outcome_number = 2
+
+#向量数据库连接路径
+qdrant_collection_url = "http://localhost:6333/"
+
 #项目名称
 project_name = "ai_springboot"
 

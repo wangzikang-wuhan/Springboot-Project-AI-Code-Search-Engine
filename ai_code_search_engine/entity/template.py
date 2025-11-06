@@ -16,9 +16,9 @@ class TypeEnum(Enum):
     ENUMERATE = "枚举类"
     OTHER = "不是.java文件"
 
-#信息类 用于描述某一段代码来自哪里
+#信息类 用于描述某一段代码来自哪里 describe你完全可以全部由AI来生成 但我这里先给个默认值避免后面向量化的时候出问题了
 class CodeInfo:
-    def __init__(self,rootPath:str,content:str,fileName:str,describe:str,fileType:str,filePackage:str,projectName:str,line_number:int = 0):
+    def __init__(self,rootPath:str,content:str,fileName:str,fileType:str,filePackage:str,projectName:str,describe:str = "默认值",line_number:int = 0):
         #具体路径
         self.rootPath = rootPath
         #内容
