@@ -1,0 +1,278 @@
+from pathlib import Path
+import javalang
+from javalang.tree import ClassDeclaration
+
+from constant.constant import project_name, project_base_path, java_file_path
+from entity.template import ClassType, TypeEnum, CodeInfo
+
+
+# java代码解析类
+class JavaParseHelper:
+
+    def __init__(self, content: str):
+        self.content = content
+
+    # 解析java文件返回所有的方法片段
+    def javaCodeParse(self, content: str):
+        # 解析java文件构造一个解析树 javalang把Java源码解析成语法树 如果文件语法不合规会抛出异常
+        java_tree = javalang.parse.parse(content)
+        # 把源码拆成一行一行的
+        code_lines = content.splitlines()
+        # 保存结果
+        results = []
+        # 遍历语法树
+        for _, class_info in java_tree.filter(javalang.tree.ClassDeclaration):
+            # 类名
+            class_name = class_info.name
+            # 遍历类方法
+            for method in class_info.methods:
+                # 起始行号-1 就是该方法开始的上一行
+                start = method.position.line - 1
+                brace_count = 0
+                method_code_lines = []
+                found_start_brace = False
+                for i in range(start, len(code_lines)):
+                    # 一整行的内容
+                    line = code_lines[i]
+                    method_code_lines.append(line)
+                    # 检测花括号（统计平衡）当{}数量平衡时说明截取完成
+                    brace_count += line.count('{')
+                    brace_count -= line.count('}')
+                    # 一旦找到第一个 '{' 开始计数
+                    if '{' in line:
+                        found_start_brace = True
+                    # 括号计数归零说明方法结束
+                    if found_start_brace and brace_count == 0:
+                        break
+
+                method_code = "\n".join(method_code_lines)
+                results.append({
+                    "class": class_name,
+                    "start_line": start,
+                    "method_name": method.name,
+                    "method_code": method_code
+                })
+        return results
+
+    # 检查java文件的类型
+    def getType(self, content: str):
+        if ClassType.CLASS.value in content:
+            return TypeEnum.CLASS
+        elif ClassType.ABSTRACT_CLASS.value in content:
+            return TypeEnum.ABSTRACT_CLASS
+        elif ClassType.ENUMERATE.value in content:
+            return TypeEnum.ENUMERATE
+        elif ClassType.INTERFACE.value in content:
+            return TypeEnum.INTERFACE
+        else:
+            return TypeEnum.OTHER
+
+    # 解析java目录
+    def javaPathAnalyze(self, path: str):
+        # resources目录
+        java = Path(path)
+        # 当前目录下的直接子目录或者文件
+        path_and_files = list(java.iterdir())
+        # 记录结果
+        results = []
+        for item in path_and_files:
+            if self.isFile(item):
+                content = Path.read_text(item, encoding="utf-8")
+                # 获取类型
+                typeStr = self.getType(content)
+                if typeStr == TypeEnum.CLASS:
+                    # 判断是否为实体类
+                    if self.isEntity(content):
+                        info = self.parseFile(item)
+                        results.append(info)
+                    else:
+                        # 不是实体类
+                        res = self.javaCodeParse(content)
+                        # 取出数据并封装
+
+                elif typeStr == TypeEnum.ABSTRACT_CLASS:
+                # 是抽象类
+                    continue
+
+                else:
+                    info = self.parseFile(item)
+                    results.append(info)
+
+
+            else:
+                # 是目录直接递归
+                sub_res = self.javaPathAnalyze(str(item))
+                results.extend(sub_res)
+        return results
+
+    # 判断类是不是实体类
+    def isEntity(self, content: str):
+        try:
+            tree = javalang.parse.parse(content)
+            for _, node in tree.filter(ClassDeclaration):
+                # 检查字段
+                fields = getattr(node, 'fields', [])
+                if len(fields) == 0:
+                    # 没有字段，不是实体类
+                    return False
+                # 检查方法
+                methods = getattr(node, 'methods', [])
+                if len(methods) == 0:
+                    # 有字段但没有方法，是实体类
+                    return True
+                # 检查是否只有标准方法
+                standard_method_prefixes = ['get', 'set', 'is']
+                standard_method_names = ['toString', 'equals', 'hashCode', 'clone']
+                for method in methods:
+                    method_name = method.name
+                    # 如果方法名不是以标准前缀开头，也不在标准方法列表中
+                    if (not any(method_name.startswith(prefix) for prefix in standard_method_prefixes) and
+                            method_name not in standard_method_names):
+                        # 有业务方法，不是纯实体类
+                        return False
+                # 只有标准方法，是实体类
+                return True
+            return False
+        except Exception as e:
+            print(f"解析出现异常：{e}")
+            return False
+
+    # 解析resources目录内容
+    def resourcesPathAnalyze(self, path: str):
+        # resources目录
+        resources = Path(path)
+        # 当前目录下的直接子目录或者文件
+        path_and_files = list(resources.iterdir())
+        # 判断是文件还是目录
+        results = []
+        for item in path_and_files:
+            if self.isFile(item):
+                info = self.parseFile(item)
+                results.append(info)
+            else:
+                # 递归继续向下
+                sub_res = self.resourcesPathAnalyze(str(item))
+                results.extend(sub_res)
+        return results
+
+    # 检查是否为文件
+    def isFile(self, item: Path):
+        if item.is_file():
+            return True
+        else:
+            return False
+
+    # 解析文件
+    def parseFile(self, item: Path):
+        content = Path.read_text(item, encoding="utf-8")
+        fileType = self.getType(content)
+        info = CodeInfo(
+            rootPath=str(item),
+            content=content,
+            fileName=item.name,
+            fileType=fileType.value,
+            describe="",
+            filePackage="",
+            projectName=project_name
+        )
+        return info
+
+    # 读取pom文件
+    def loadPomContent(self, base_path: str, project_name: str):
+        pom_file_name = "pom.xml"
+        pom_path = base_path + project_name + "/" + pom_file_name
+        pom = Path(pom_path)
+        if pom.exists():
+            content = pom.read_text(encoding="utf-8")
+            return CodeInfo(
+                projectName=project_name,
+                rootPath=pom_path,
+                content=content,
+                fileType=self.getType(content).value,
+                fileName=pom_file_name,
+                describe="",
+                filePackage="",
+            )
+        else:
+            print("pom.xml not found")
+            return None
+
+
+if __name__ == "__main__":
+    code = """
+            public class AdvertisersController {
+
+                private final AdvertisersService advertisersService;
+
+                /**
+                 * 新增广告主
+                 * @param dto
+                 * @return
+                 */
+                @OperationLog(action = "新增广告主")
+                @PostMapping("/save")
+                public Result save(@RequestBody @Validated AdvertisersSaveDTO dto){
+                    return advertisersService.save(dto);
+                }
+
+                /**
+                 * 条件查询所有广告主
+                 *
+                 * @return
+                 */
+                @PostMapping("/list")
+                public Result list(@RequestBody @Validated AdvertisersListDTO dto){
+                    return advertisersService.list(dto);
+                }
+
+                /**
+                 * 查询所有广告主
+                 *
+                 * @return
+                 */
+                @PostMapping("/listAllAdv")
+                public Result listAllAdv(){
+                    return advertisersService.listAllAdv();
+                }
+
+                /**
+                 * 修改广告主
+                 * @param dto
+                 * @return
+                 */
+                @OperationLog(action = "修改广告主")
+                @PostMapping("/update")
+                public Result update(@RequestBody @Validated AdvertisersUpdateDTO dto){
+                    return advertisersService.update(dto);
+                }
+
+                /**
+                 * 删除广告主
+                 * @return
+                 */
+                @OperationLog(action = "删除广告主")
+                @GetMapping("/delete")
+                public Result delete(@RequestParam("id") Integer id){
+                    return advertisersService.delete(id);
+                }
+
+            }
+        """
+    helper = JavaParseHelper(code)
+    methods = helper.javaCodeParse(code)
+    for method in methods:
+        print(method, "\n")
+
+    java_path = project_base_path + project_name + java_file_path
+    #
+    # infos = helper.resourcesPathAnalyze(path=java_path)
+    #
+    # for info in infos:
+    #     print(str(info.to_json()))
+
+    # file = helper.loadPomContent(base_path=project_base_path, project_name=project_name)
+    # print(file.to_json())
+    # res = helper.javaPathAnalyze(java_path)
+    # for item in res:
+    #     print(item.to_json())
+
