@@ -33,6 +33,7 @@ prompt_template = PromptTemplate.from_template(
     -文件名称:{fileName}
     -文件类型:{fileType}
     -具体路径:{path}
+    
     代码内容：
     {content}
     """
@@ -66,24 +67,28 @@ graph = graph_builder.compile(checkpointer=memory)
 
 #对外提供一个访问LLM获取代码分析的方法
 def llmAnalyseCode(codeInfo:CodeInfo)->str:
-    #相同的项目使用同一个缓存
-    config = {
-        "configurable":
-            {
-                # thread_id用于状态管理 这里使用项目名称的hash值
-                "thread_id": codeInfo.projectName.__hash__()
-            }
-    }
-    #初始状态
-    init_state = State()
-    init_state["projectName"] = codeInfo.projectName
-    init_state["content"] = codeInfo.content
-    init_state["fileName"] = codeInfo.fileName
-    init_state["fileType"] = codeInfo.fileType
-    init_state["path"] = codeInfo.rootPath
-    #调用模型返回结果
-    res = graph.invoke(init_state, config)
-    return res["describe"]
+    try:
+        # 相同的项目使用同一个缓存
+        config = {
+            "configurable":
+                {
+                    # thread_id用于状态管理 这里使用项目名称的hash值
+                    "thread_id": codeInfo.projectName.__hash__()
+                }
+        }
+        # 初始状态
+        init_state = State()
+        init_state["projectName"] = codeInfo.projectName
+        init_state["content"] = codeInfo.content
+        init_state["fileName"] = codeInfo.fileName
+        init_state["fileType"] = codeInfo.fileType
+        init_state["path"] = codeInfo.rootPath
+        # 调用模型返回结果
+        res = graph.invoke(init_state, config)
+        return res["describe"]
+    except Exception as e:
+        print(e)
+        return "LLM未分析到任何结果"
 
 
 
