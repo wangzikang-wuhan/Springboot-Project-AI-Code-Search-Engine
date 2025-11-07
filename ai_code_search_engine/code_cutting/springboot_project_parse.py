@@ -195,16 +195,53 @@ class JavaParseHelper:
         try:
             tree = javalang.parse.parse(content)
             for _, node in tree.filter(ClassDeclaration):
+
+                #检查注解
+                annotation_names = {
+                    ann.name.split(".")[-1]  # 去掉前缀 @
+                    for ann in getattr(node, "annotations", [])
+                }
+
+                print("类上的注解：",annotation_names)
+                #非实体类注解
+                non_entity_annotations = {"Service", "Controller", "Repository", "Component", "Configuration",
+                                          "RestController"}
+
+                if annotation_names & non_entity_annotations:
+                    return False
+
+                #强实体类注解
+                strong_entity_annotations = {"Entity","Table","Document","TableName","NoArgsConstructor","AllArgsConstructor"}
+
+                #字段注解辅助判断
+                field_annotations = {"TableId", "TableField"}
+
+                #先判断强实体类注解 拥有这些注解的大概率是实体类
+                if annotation_names & strong_entity_annotations:
+                    return True
+
                 # 检查字段
                 fields = getattr(node, 'fields', [])
                 if len(fields) == 0:
                     # 没有字段，不是实体类
                     return False
+                else:
+                    #有字段 获取字段注解
+                    annotation_names = set()
+                    for field in fields:
+                        #字段注解名称列表
+                        for anno in field.annotations:
+                            annotation_names.add(anno.name)
+                    intersection = annotation_names & field_annotations
+                    if intersection:
+                        return True
+
                 # 检查方法
                 methods = getattr(node, 'methods', [])
                 if len(methods) == 0:
                     # 有字段但没有方法，是实体类
                     return True
+
                 # 检查是否只有标准方法
                 standard_method_prefixes = ['get', 'set', 'is']
                 standard_method_names = ['toString', 'equals', 'hashCode', 'clone']
@@ -297,7 +334,39 @@ def SpringBootParser():
 
 #测试
 if __name__ == "__main__":
-    res = SpringBootParser()
-    for item in res:
-        print(item.to_json())
+    entity = """
+    package com.wzk.ai_springboot.controller;
+    import com.wzk.ai_springboot.entity.User;
+    import com.wzk.ai_springboot.service.UserService;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.web.bind.annotation.PostMapping;
+    import org.springframework.web.bind.annotation.RequestBody;
+    import org.springframework.web.bind.annotation.RequestMapping;
+    import org.springframework.web.bind.annotation.RestController;
+    
+    /**
+     * @author wangzikang
+     */
+    @RestController
+    @RequestMapping("/user")
+    public class UserController {
+    
+        @Autowired
+        private UserService userService;
+    
+        @PostMapping("/login")
+        public String login(String username, String password) {
+            return userService.login(username, password);
+        }
+    
+        @PostMapping("/register")
+        public String register(@RequestBody User user) {
+            return userService.register(user);
+        }
+    
+    }
+    """
+    helper = JavaParseHelper()
+    res = helper.isEntity(content=entity)
+    print(res)
 

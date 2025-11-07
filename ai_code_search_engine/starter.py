@@ -1,5 +1,4 @@
 import json
-from code_cutting.springboot_project_parse import SpringBootParser
 from constant.constant import project_name
 from vectorization.qdrant_vector_memory import VectorHelper
 
