@@ -34,8 +34,6 @@ class VectorHelper:
                 sparse_vectors_config={sparse_vector_name: models.SparseVectorParams()},
             )
             print("向量数据库{}创建完成".format(self.collection_name))
-        else:
-            print("向量数据库{}已经存在无需创建".format(self.collection_name))
 
     #插入数据
     def pushDataToVectorDB(self,data:List[CodeInfo]):

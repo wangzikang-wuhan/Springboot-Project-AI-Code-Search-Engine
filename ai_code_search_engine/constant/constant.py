@@ -21,10 +21,10 @@ dense_model_name = "jinaai/jina-embeddings-v2-base-code"
 sparse_model_name = "prithivida/Splade_PP_en_v1"
 
 #稠密向量和稀疏向量召回的文档数
-dense_number = 5
-sparse_number = 5
+dense_number = 4
+sparse_number = 4
 
-#最终返回的结果数量
+#查询最终返回的结果数量
 outcome_number = 2
 
 #向量数据库连接路径

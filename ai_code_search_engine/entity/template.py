@@ -52,3 +52,7 @@ class CodeInfo:
             self.type = "接口"
         else:
             self.type = "不是.java文件"
+
+class ProjectType(Enum):
+    SPRING_BOOT = "springboot"
+
