@@ -2,7 +2,7 @@ from typing import TypedDict
 from langchain_community.chat_models import ChatZhipuAI
 from langchain_core.prompts import PromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
-from constant.constant import zhipu_ai_key
+from constant.config_constant import zhipu_ai_key
 from langgraph.graph import START, StateGraph
 from entity.template import CodeInfo
 

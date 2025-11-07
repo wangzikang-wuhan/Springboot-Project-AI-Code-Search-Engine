@@ -1,7 +1,7 @@
 import json
 
 from code_cutting.springboot_project_parse import SpringBootParser
-from constant.constant import project_name
+from constant.springboot_constant import project_name
 from entity.template import ProjectType
 from utils.resource_operations_util import open_in_explorer
 from vectorization.qdrant_vector_memory import VectorHelper
@@ -15,8 +15,6 @@ class SearchEngineStarter:
         if projectType == ProjectType.SPRING_BOOT:
             results = SpringBootParser()
             self.vectorHelper.pushDataToVectorDB(results)
-
-
 
 
 if __name__ == '__main__':

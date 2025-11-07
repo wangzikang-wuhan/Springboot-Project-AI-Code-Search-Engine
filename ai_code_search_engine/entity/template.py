@@ -55,4 +55,5 @@ class CodeInfo:
 
 class ProjectType(Enum):
     SPRING_BOOT = "springboot"
+    PYTHON = "python"
 

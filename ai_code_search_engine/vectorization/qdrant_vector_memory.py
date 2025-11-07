@@ -2,8 +2,9 @@ import os
 from typing import List
 from qdrant_client import models,QdrantClient
 from tqdm import tqdm
-from constant.constant import qdrant_collection_url, dense_vector_name, dense_model_name, sparse_vector_name, \
-    sparse_model_name, project_name, dense_number, sparse_number, outcome_number
+from constant.config_constant import qdrant_collection_url, dense_vector_name, dense_model_name, sparse_vector_name, \
+    sparse_model_name, dense_number, sparse_number, outcome_number
+from constant.springboot_constant import project_name
 from entity.template import CodeInfo
 
 

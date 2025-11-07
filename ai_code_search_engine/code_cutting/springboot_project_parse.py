@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import javalang
 from javalang.tree import ClassDeclaration
-from constant.constant import project_name, project_base_path, java_file_path, config_file_path
+from constant.springboot_constant import project_name, project_base_path, java_file_path, config_file_path
 from entity.template import ClassType, TypeEnum, CodeInfo
 from llm import ai_helper
 
