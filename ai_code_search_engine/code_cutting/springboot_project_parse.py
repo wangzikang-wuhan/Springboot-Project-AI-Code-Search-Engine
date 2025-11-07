@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import javalang
 from javalang.tree import ClassDeclaration
@@ -66,6 +67,21 @@ class JavaParseHelper:
             return TypeEnum.INTERFACE
         else:
             return TypeEnum.OTHER
+
+    # 检查其他文件类型 配置文件 xml 等
+    def getOtherType(self, fileName: str):
+        #配置文件等
+        config_file = [".properties",".yml",".yaml",".xaml",".xml"]
+        #静态资源文件
+        static_resource_file = [".html",".js",".css",".json",".jsp"]
+        #取出文件后缀
+        suffix = os.path.splitext(fileName)[1].lower()
+        if suffix in config_file:
+            return fileName+" 配置文件"
+        elif suffix in static_resource_file:
+            return fileName+" 静态资源文件"
+        else:
+            return "未识别出文件{}的类型".format(fileName)
 
     # 解析java目录
     def javaPathAnalyze(self, path: str):
@@ -179,7 +195,6 @@ class JavaParseHelper:
                     info.describe = des
                     # 插回结果中
                     results.append(info)
-
                 else:
                     info = self.parseFile(item=item,package=package)
                     results.append(info)
@@ -198,15 +213,16 @@ class JavaParseHelper:
 
                 #检查注解
                 annotation_names = {
-                    ann.name.split(".")[-1]  # 去掉前缀 @
+                    #去掉前缀 @
+                    ann.name.split(".")[-1]
                     for ann in getattr(node, "annotations", [])
                 }
 
-                print("类上的注解：",annotation_names)
                 #非实体类注解
                 non_entity_annotations = {"Service", "Controller", "Repository", "Component", "Configuration",
                                           "RestController"}
 
+                #只要包含非实体类注解一定不是实体类
                 if annotation_names & non_entity_annotations:
                     return False
 
@@ -292,9 +308,9 @@ class JavaParseHelper:
             rootPath=str(item),
             content=content,
             fileName=item.name,
-            fileType=fileType.value,
+            fileType= self.getOtherType(item.name) if fileType == TypeEnum.OTHER else fileType.value,
             describe="",
-            filePackage="",
+            filePackage=package,
             projectName=project_name
         )
         return info
@@ -367,6 +383,8 @@ if __name__ == "__main__":
     }
     """
     helper = JavaParseHelper()
-    res = helper.isEntity(content=entity)
+    # res = helper.isEntity(content=entity)
+    # print(res)
+    res = helper.getOtherType("AdvertisersMapper.xml")
     print(res)
 
